@@ -37,7 +37,7 @@ export default function Button(props: buttonProps) {
       class={`${baseStyles} ${variant} ${size} ${local.class || ""}`}
       onClick={local.onClick}
     >
-      {`${local.children}`}
+      {local.children}
     </button>
   );
 }
