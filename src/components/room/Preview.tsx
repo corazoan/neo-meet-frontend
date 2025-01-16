@@ -1,4 +1,4 @@
-import {  onMount, createEffect } from "solid-js";
+import { onMount, createEffect } from "solid-js";
 import { io } from "socket.io-client"; // Import Socket.IO client
 import { Header } from "../ui/Header";
 import { micOffIcon, micOnIcon, vidOffIcon, vidOnIcon } from "../icons/svgIcon";
@@ -16,11 +16,6 @@ export function Preview({
   setJoin: Setter<boolean>;
 }) {
   let myVideo!: HTMLVideoElement;
-  let localStream!: MediaStream;
-
-
-
-
 
   onMount(() => {
     // Initialize media stream
@@ -37,7 +32,8 @@ export function Preview({
       .getUserMedia(constraints)
       .then((stream) => {
         console.log("Media stream started successfully", stream);
-        localStream = stream;
+        setStore("localStream", stream);
+        // localStream = stream;
 
         // Apply stream to the video element if video is on
         if (store.isVidOn && myVideo) {
@@ -53,15 +49,15 @@ export function Preview({
   createEffect(() => {
     // Reapply the stream to the video element when isVidOn changes
     if (store.isVidOn) {
-      if (myVideo && localStream) {
-        myVideo.srcObject = localStream;
+      if (myVideo && store.localStream) {
+        myVideo.srcObject = store.localStream;
         myVideo.play();
       }
     }
   });
 
   function toggleMic() {
-    const audioTracks = localStream.getAudioTracks();
+    const audioTracks = store.localStream!.getAudioTracks();
     if (audioTracks.length > 0) {
       const currentState = store.isMicOn;
       audioTracks[0].enabled = !currentState;
@@ -70,7 +66,7 @@ export function Preview({
   }
 
   function toggleVid() {
-    const videoTracks = localStream.getVideoTracks();
+    const videoTracks = store.localStream!.getVideoTracks();
     if (videoTracks.length > 0) {
       const currentState = store.isVidOn;
       setStore("isVidOn", !currentState);

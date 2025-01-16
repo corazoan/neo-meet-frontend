@@ -14,7 +14,6 @@ export const Admin = ({ userName }: { userName: string }) => {
       video.play();
     });
   };
-  let localStream: MediaStream;
 
   const joinRoom = async () => {
     console.log("join room is called");
@@ -34,24 +33,19 @@ export const Admin = ({ userName }: { userName: string }) => {
     };
   };
   onMount(() => {
-    if (navigator.mediaDevices) {
-      navigator.mediaDevices
-        .getUserMedia({ audio: true, video: true })
-        .then((stream) => {
-          localStream = stream;
-          addVideoStream(myVideo, stream);
-          myVideo.muted = true;
-          const audioTrackes = localStream.getAudioTracks();
-          const videoTrackes = localStream.getVideoTracks();
-          if (!store.isMicOn && audioTrackes.length > 0) {
-            audioTrackes[0].enabled = store.isMicOn;
-          }
-          if (!store.isVidOn && videoTrackes.length > 0) {
-            audioTrackes[0].enabled = store.isVidOn;
-          }
-        });
-    } else {
-      alert("Your Browser does not support media");
+    // if (navigator.mediaDevices) {
+    // navigator.mediaDevices
+    //   .getUserMedia({ audio: true, video: true })
+    //   .then((stream) => {
+    //     localStream = stream;
+    addVideoStream(myVideo, store.localStream!);
+    const audioTrackes = store.localStream!.getAudioTracks();
+    const videoTrackes = store.localStream!.getVideoTracks();
+    if (!store.isMicOn && audioTrackes.length > 0) {
+      audioTrackes[0].enabled = store.isMicOn;
+    }
+    if (!store.isVidOn && videoTrackes.length > 0) {
+      audioTrackes[0].enabled = store.isVidOn;
     }
   });
 
@@ -84,15 +78,15 @@ export const Admin = ({ userName }: { userName: string }) => {
   //Re-apply the stream to video element
   createEffect(() => {
     if (store.isVidOn) {
-      if (myVideo && localStream) {
-        myVideo.srcObject = localStream;
+      if (myVideo && store.localStream) {
+        myVideo.srcObject = store.localStream;
         myVideo.play();
       }
     }
   });
 
   function toggleVid() {
-    const videoTracks = localStream.getVideoTracks();
+    const videoTracks = store.localStream!.getVideoTracks();
     if (videoTracks.length > 0) {
       const currentstate = store.isVidOn;
       videoTracks[0].enabled = !currentstate;
@@ -101,7 +95,7 @@ export const Admin = ({ userName }: { userName: string }) => {
   }
 
   function toggleMic() {
-    const audioTracks = localStream.getAudioTracks();
+    const audioTracks = store.localStream!.getAudioTracks();
     if (audioTracks.length > 0) {
       const currentState = store.isMicOn;
       audioTracks[0].enabled = !currentState;
@@ -125,6 +119,7 @@ export const Admin = ({ userName }: { userName: string }) => {
                   <video
                     muted={true}
                     ref={myVideo}
+                    // src={store.localStream}
                     class="  object-cover  max-w-[120px] h-[180px]  md:max-w-[300px] md:max-h-[300px] "
                   ></video>
                 ) : (
