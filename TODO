@@ -1,0 +1,3 @@
+| PENDING | we have to render admin component after preview and connect to peerjs .
+| PENDING | make user component also connect to peerjs
+| DONE | display a good looking logo if user stop their video.

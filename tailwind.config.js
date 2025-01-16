@@ -17,6 +17,9 @@ export default {
           "100%": { transform: "translate(0%, 0%)" },
         },
       },
+      colors: {
+        primary_b: "#353540",
+      },
     },
   },
   plugins: [],

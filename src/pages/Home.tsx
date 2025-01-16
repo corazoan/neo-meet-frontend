@@ -1,17 +1,78 @@
-import { UserButton } from "clerk-solidjs";
 import Button from "../components/ui/Button";
-import { createSignal } from "solid-js";
+import { createSignal, onCleanup, onMount } from "solid-js";
+import { LoadingState } from "../components/ui/loadingState";
+import { solidFetch } from "../libs/solidFetch";
+import { Header } from "../components/ui/Header";
 
 export default function Home() {
   const [inputFilled, setInputFilled] = createSignal(false);
   const [itemNum, setNum] = createSignal(1);
+  const [giveOption, setOption] = createSignal(false);
+  const [newMeet, setNewMeet] = createSignal<{
+    result?: string;
+    message?: string;
+    error?: string;
+  }>();
+
+  const [isLoading, setLoading] = createSignal(false);
+  const [openModel, setOpenModel] = createSignal(false);
+  let option!: HTMLDivElement;
+  onMount(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (giveOption() && option && !option.contains(e.target as Node)) {
+        setOption(false);
+      }
+    };
+
+    window.document.addEventListener("click", handleClickOutside);
+
+    // Cleanup the event listener
+    onCleanup(() => {
+      window.document.removeEventListener("click", handleClickOutside);
+    });
+  });
+
+  const handleCreateNewMeeting = async () => {
+    setOpenModel(true);
+    const res = await solidFetch("/create-new-meeting", {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    console.log("making a request");
+    try {
+      const data = await res.json();
+      if (!res.ok) {
+        setNewMeet(data);
+      }
+      setNewMeet(data);
+    } catch {
+      console.log("something went wrong in server");
+      setLoading(false);
+    }
+  };
+
+  // const setCookies = async () => {
+  //   const res = await fetch("http://localhost:8787/", {
+  //     method: "POST",
+  //     headers: {
+  //       "Content-Type": "application/json",
+  //     },
+  //     credentials: "include",
+  //   });
+  //   const json = await res.json();
+  //   console.log(json);
+  // };
 
   const renderCarasoulItem = () => {
     {
       switch (itemNum()) {
         case 1:
           return (
-            <div id="item" class={`animate-left  `}>
+            <div id="item" class={`animate-right  `}>
               <img
                 class="mx-auto"
                 src={
@@ -67,15 +128,7 @@ export default function Home() {
 
   return (
     <div class="h-[100vh] overflow-none">
-      <div class="flex h-16 justify-end p-6">
-        <UserButton
-          appearance={{
-            elements: {
-              avatarBox: "w-10 h-10",
-            },
-          }}
-        />
-      </div>
+      <Header></Header>
       <main class="w-[90vw] md:justify-around  mx-auto  h-[calc(100%-64px)] box-border md:flex-row md:items-center md:gap-x-16   flex flex-col  ">
         <div class="my-2 md:max-w-[35rem]">
           <h1 class="text-[2.5rem] my-2 text-center md:text-left">
@@ -86,8 +139,13 @@ export default function Home() {
             <span>Mate</span>
           </p>
           <div>
-            <Button class="my-4 ">
-              {" "}
+            <Button
+              class="my-4"
+              onClick={(e) => {
+                e.stopImmediatePropagation();
+                setOption(true);
+              }}
+            >
               <svg
                 class="mr-1"
                 xmlns="http://www.w3.org/2000/svg"
@@ -104,6 +162,28 @@ export default function Home() {
               </svg>
               New Metting
             </Button>
+            {giveOption() && (
+              <div ref={option} class="absolute bg-gray-500">
+                <Button
+                  onClick={() => {
+                    handleCreateNewMeeting();
+                  }}
+                  size="lg"
+                  class="w-[100%]  h-[60px] rounded-none "
+                >
+                  {isLoading() ? <LoadingState /> : "Create a new meeting "}
+                </Button>
+                <Button
+                  // onClick={() => {
+                  //  setCookies();
+                  // }}
+                  size="lg"
+                  class="w-[100%] h-[60px] "
+                >
+                  Start an instant meeting
+                </Button>
+              </div>
+            )}
             <form action="" class="flex ">
               <div class="flex items-center rounded-[.25rem] border-solid border-gray-900 focus-within:border-blue-600  border-2 w-fit bg-white py-1 ">
                 {" "}
@@ -143,7 +223,7 @@ export default function Home() {
           <hr class="my-6" />
         </div>
 
-        <div class="flex h-fit items-center">
+        <div class="flex h-fit justify-center items-center">
           <button
             id="previous"
             onClick={() => {
@@ -190,6 +270,39 @@ export default function Home() {
           </button>
         </div>
       </main>
+      {openModel() && (
+        <div class="absolute top-0 bg-white/10 backdrop-blur-md h-[100vh] w-[100vw] flex justify-center items-center">
+          <div class="bg-black/50 text-center flex-col rounded border-solid border-[0.8px] border-[#353540] backdrop-blue-[16px] box-border w-[300px] flex py-14 items-center h-[300px]">
+            <h1 class="text-xl">Here's your joining info</h1>
+            {newMeet() ? (
+              <div class="text-lg w-[100%]">
+                {newMeet()?.error ? (
+                  <p class="text-red-600">{newMeet()?.error}</p>
+                ) : (
+                  <p class="text-blue-500">{newMeet()?.message}</p>
+                )}
+                <div class="my-5  mx-auto">
+                  <p id="meeting_id">{`http://localhost:5173/room/${newMeet()?.result}`}</p>
+                  <Button
+                    class="mx-auto my-1"
+                    onClick={async () => {
+                      await navigator.clipboard.writeText(
+                        `http://localhost:5173/room/${newMeet()?.result}` || "",
+                      );
+
+                      setOpenModel(false);
+                    }}
+                  >
+                    Copy
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <LoadingState />
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
