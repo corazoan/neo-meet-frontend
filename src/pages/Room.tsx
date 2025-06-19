@@ -5,36 +5,21 @@ import { createSignal } from "solid-js";
 import { LoadingState } from "../components/ui/loadingState";
 import { Admin } from "../components/room/Admin";
 import { isUuid } from "../libs/isUuid";
+import { setStore } from "../store";
 import { Preview } from "../components/room/Preview";
+import { User } from "../components/room/User";
 export default function Room() {
   const params = useParams();
   const [errMsg, setErrMsg] = createSignal("");
-  const [socket, setSocket] = createSignal(null);
   const [userName, setUserName] = createSignal("");
   const [isLoading, setLoading] = createSignal(true);
   const [role, setRole] = createSignal<"Admin" | "User">("User");
   const [join, setJoin] = createSignal(false);
-  const joinRoom = async () => {
-    const socket = new WebSocket("ws://localhost:8787/");
-    socket.onmessage = (event) => {
-      console.log(event.data);
-    };
-
-    // Handle connection open
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-    };
-
-    // Handle connection close
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-  };
 
   onMount(async () => {
     const navigate = useNavigate();
+    setStore("roomId", params.room_id);
     const isValidUuid = isUuid(params.room_id);
-
     if (isValidUuid) {
       try {
         const res = await solidFetch("/room/is-meet-id-valid", {
@@ -98,7 +83,7 @@ export default function Room() {
             role() === "Admin" ? (
               <Admin userName={userName()} />
             ) : (
-              "user"
+              <User />
             )
           ) : (
             <Preview setJoin={setJoin} username={userName()} role={role()} />

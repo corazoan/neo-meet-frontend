@@ -1,43 +1,27 @@
 import { onMount } from "solid-js";
 import { Header } from "../ui/Header";
-import { createSignal } from "solid-js";
-import Button from "../ui/Button";
 import { setStore, store } from "../../store";
 import { micOffIcon, micOnIcon, vidOffIcon, vidOnIcon } from "../icons/svgIcon";
-import { createEffect } from "solid-js";
+import Peer from "peerjs";
+
+export const addVideoStream = (
+  video: HTMLVideoElement,
+  stream: MediaStream
+) => {
+  console.log(video);
+  video.srcObject = stream;
+  video.addEventListener("loadedmetadata", () => {
+    video.play();
+  });
+};
 export const Admin = ({ userName }: { userName: string }) => {
   let myVideo!: HTMLVideoElement;
   let draggableElement!: HTMLDivElement;
-  const addVideoStream = (video: HTMLVideoElement, stream: MediaStream) => {
-    video.srcObject = stream;
-    video.addEventListener("loadedmetadata", () => {
-      video.play();
-    });
-  };
+  let socket: WebSocket;
 
-  const joinRoom = async () => {
-    console.log("join room is called");
-    const socket = new WebSocket("ws://localhost:8787/ws");
-    socket.onmessage = (event) => {
-      console.log(event.data);
-    };
-
-    // Handle connection open
-    socket.onopen = () => {
-      console.log("WebSocket connection established");
-    };
-
-    // Handle connection close
-    socket.onclose = () => {
-      console.log("WebSocket connection closed");
-    };
-  };
   onMount(() => {
-    // if (navigator.mediaDevices) {
-    // navigator.mediaDevices
-    //   .getUserMedia({ audio: true, video: true })
-    //   .then((stream) => {
-    //     localStream = stream;
+    console.log("mount again");
+    const peer = new Peer();
     addVideoStream(myVideo, store.localStream!);
     const audioTrackes = store.localStream!.getAudioTracks();
     const videoTrackes = store.localStream!.getVideoTracks();
@@ -47,6 +31,41 @@ export const Admin = ({ userName }: { userName: string }) => {
     if (!store.isVidOn && videoTrackes.length > 0) {
       audioTrackes[0].enabled = store.isVidOn;
     }
+    socket = new WebSocket("ws://localhost:8787/ws/");
+
+    socket.onopen = () => {
+      console.log("Web socket connection is being established");
+    };
+
+    peer.on("open", (userId) => {
+      console.log("peerjs is not open");
+      console.log("user id", userId);
+      const data = {
+        type: "join-room",
+        payload: { roomId: store.roomId || "not found", userId: userId },
+      };
+      socket.send(JSON.stringify(data));
+    });
+
+    socket.onmessage = (event) => {
+      const data = JSON.parse(event.type);
+      console.log("Message from server:", data);
+
+      // Handle specific events if needed
+      switch (data.event) {
+        case "connected":
+          break;
+        case "user-conneted":
+          console.log("new user connected");
+          console.log("data", data);
+          break;
+        case "mic-status":
+          break;
+      }
+      if (data.event === "connected") {
+        console.log(data.message);
+      }
+    };
   });
 
   function dragElement(e: MouseEvent) {
@@ -75,16 +94,6 @@ export const Admin = ({ userName }: { userName: string }) => {
     }
   }
 
-  //Re-apply the stream to video element
-  createEffect(() => {
-    if (store.isVidOn) {
-      if (myVideo && store.localStream) {
-        myVideo.srcObject = store.localStream;
-        myVideo.play();
-      }
-    }
-  });
-
   function toggleVid() {
     const videoTracks = store.localStream!.getVideoTracks();
     if (videoTracks.length > 0) {
@@ -111,20 +120,15 @@ export const Admin = ({ userName }: { userName: string }) => {
           <div class="w-[100%]  my-12 h-[70vh] md:h-auto  md:w-[60%] max-w-[1260px] max-height-675px  aspect-video ">
             <div
               ref={draggableElement}
-              onMouseDown={dragElement}
+              onMouseDown={() => dragElement}
               class="flex justify-end absolute cursor-move"
             >
               <div class="h-fit local  w-fit ">
-                {store.isVidOn ? (
-                  <video
-                    muted={true}
-                    ref={myVideo}
-                    // src={store.localStream}
-                    class="  object-cover  max-w-[120px] h-[180px]  md:max-w-[300px] md:max-h-[300px] "
-                  ></video>
-                ) : (
-                  <div class="  object-cover  max-w-[120px] h-[180px]  md:max-w-[300px] md:max-h-[300px] border-primary_b border-2 border-solid "></div>
-                )}
+                <video
+                  muted={true}
+                  ref={myVideo}
+                  class="  object-cover  max-w-[120px] h-[180px]  md:max-w-[300px] md:max-h-[300px] "
+                ></video>
                 <div class="absolute top-3 left-3 bg-black/20 backdrop-blur-md rounded p-2">
                   {userName}
                 </div>

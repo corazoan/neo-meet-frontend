@@ -3,6 +3,8 @@ import { createSignal, onCleanup, onMount } from "solid-js";
 import { LoadingState } from "../components/ui/loadingState";
 import { solidFetch } from "../libs/solidFetch";
 import { Header } from "../components/ui/Header";
+import { isUuid } from "../libs/isUuid";
+import { useNavigate } from "@solidjs/router";
 
 export default function Home() {
   const [inputFilled, setInputFilled] = createSignal(false);
@@ -16,6 +18,8 @@ export default function Home() {
 
   const [isLoading, setLoading] = createSignal(false);
   const [openModel, setOpenModel] = createSignal(false);
+  const [roomId, setRoomId] = createSignal("");
+  const navigate = useNavigate();
   let option!: HTMLDivElement;
   onMount(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -54,18 +58,6 @@ export default function Home() {
       setLoading(false);
     }
   };
-
-  // const setCookies = async () => {
-  //   const res = await fetch("http://localhost:8787/", {
-  //     method: "POST",
-  //     headers: {
-  //       "Content-Type": "application/json",
-  //     },
-  //     credentials: "include",
-  //   });
-  //   const json = await res.json();
-  //   console.log(json);
-  // };
 
   const renderCarasoulItem = () => {
     {
@@ -202,7 +194,7 @@ export default function Home() {
                 <input
                   type="text"
                   onInput={(e) => {
-                    console.log(e.target.value);
+                    setRoomId(e.target.value);
                     if (e.target.value.length > 0) {
                       return setInputFilled(true);
                     }
@@ -213,6 +205,18 @@ export default function Home() {
                 ></input>
               </div>
               <button
+                onClick={(e) => {
+                  e.preventDefault();
+                  const regex =
+                    /http:\/\/localhost:5173\/room\/([a-f0-9-]{36})/;
+                  if (isUuid(roomId()) || regex.test(roomId())) {
+                    console.log("it is uuid");
+                    // if roomId().match(regex)![1] = null; then room id true;
+                    navigate(
+                      `http://localhost:5173/room/${roomId().match(regex)![1] || roomId()}`,
+                    );
+                  }
+                }}
                 class={`px-4 mx-4 rounded ${inputFilled() ? "text-blue-500 " : "text-white/80 "} focus:bg-white/20 transition duration-200 ease-out`}
                 disabled={!inputFilled()}
               >

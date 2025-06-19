@@ -1,5 +1,4 @@
 import { onMount, createEffect } from "solid-js";
-import { io } from "socket.io-client"; // Import Socket.IO client
 import { Header } from "../ui/Header";
 import { micOffIcon, micOnIcon, vidOffIcon, vidOnIcon } from "../icons/svgIcon";
 import Button from "../ui/Button";
